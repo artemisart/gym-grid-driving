@@ -7,8 +7,6 @@ import numpy as np
 from collections import namedtuple
 from enum import Enum
 
-import copy
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -66,6 +64,8 @@ class CarNotStartedException(Exception):
 
 
 class Point(object):
+    __slots__ = 'x', 'y'
+
     def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
@@ -97,6 +97,8 @@ class Point(object):
 
 
 class Rectangle(object):
+    __slots__ = 'w', 'h', 'x', 'y'
+
     def __init__(self, w, h, x=0, y=0):
         self.w, self.h = w, h
         self.x, self.y = x, y
@@ -193,6 +195,8 @@ class Car(object):
 
 
 class Action(object):
+    __slots__ = 'name', 'delta'
+
     def __init__(self, name, delta):
         self.name = name
         self.delta = delta
@@ -384,7 +388,7 @@ class World(object):
                 raise exception
 
     def as_tensor(self, pytorch=True):
-        t = np.zeros(self.tensor_shape)
+        t = np.zeros(self.tensor_shape, dtype=np.float32)
         for car in self.state.cars:
             if self.state.agent and car != self.state.agent:
                 t[0, car.position.x, car.position.y] = 1
@@ -395,7 +399,7 @@ class World(object):
         t[3, :, :] = self.state.occupancy_trails
         if pytorch:
             t = np.transpose(t, (0, 2, 1)) # [C, H, W]
-        assert t.shape == self.tensor_space(pytorch).shape
+        # assert t.shape == self.tensor_space(pytorch).shape
         return t
 
     def as_vector(self, speed=True, trail=False):
@@ -411,7 +415,7 @@ class World(object):
         if trail:
             v += self.state.occupancy_trails.flatten().tolist()
         v = np.array(v)
-        assert v.shape == self.vector_space(speed, trail).shape
+        # assert v.shape == self.vector_space(speed, trail).shape
         return v
 
     def tensor_space(self, pytorch=True, channel=True):
@@ -456,12 +460,9 @@ class World(object):
             finish_position = None
             occupancy_trails = np.zeros(self.occupancy_trails.shape)
 
-        def cp(data):
-            return copy.deepcopy(data)
-
         if hasattr(self, '_state'):
             del self._state
-        self._state = GridDrivingState(cp(other_cars), cp(agent), cp(finish_position), cp(occupancy_trails), cp(agent_state))
+        self._state = GridDrivingState(other_cars, agent, finish_position, occupancy_trails, agent_state)
 
     @property
     def tensor_state(self):
@@ -495,7 +496,7 @@ def get_range(remaining_step, current_number, target_number, step_size):
     return (min_range, max_range)
 
 def get_trajectory(start, end, direction, step_size, boundary=None):
-    assert step_size > 0 and abs(direction) in range(1, 2)
+    # assert step_size > 0 and abs(direction) in range(1, 2)
     trajectory = [start]
     x = start.x
     y = start.y
@@ -579,9 +580,9 @@ class GridDrivingEnv(gym.Env):
 
     def _step(self, action):
         if isinstance(action, int):
-            assert action in range(len(self.actions))
+            # assert action in range(len(self.actions))
             action = self.actions[action]
-        assert isinstance(action, Action)
+        # assert isinstance(action, Action)
 
         reward = 0
 
